@@ -45,3 +45,4 @@ xqmstats
 libquota.a
 librpcclient.a
 *.tar.*
+*.kvm12

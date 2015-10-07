@@ -110,6 +110,7 @@ struct configparams {
 	char *group_message;
 	char *group_signature;
 	int use_ldap_mail; /* 0 */
+	int use_ldap_tls; /* 0 */
 	time_t cc_before;
 #ifdef USE_LDAP_MAIL_LOOKUP
 	int ldap_is_setup; /* 0 */
@@ -184,6 +185,14 @@ static int setup_ldap(struct configparams *config)
 		return -1;
 	}
 
+	if (config->use_ldap_tls) {
+		ret = ldap_start_tls_s(ldapconn, NULL, NULL);
+		printf("Using TLS\n");
+		if (ret != LDAP_SUCCESS) {
+			errstr(_("ldap_start_tls_s() failed: %s\n"), ldap_err2string(ret));
+		    return -1;
+		}
+	}
 	ret = ldap_sasl_bind_s(ldapconn, config->ldap_binddn, LDAP_SASL_SIMPLE, &cred, NULL, NULL, NULL);
 	if(ret < 0) {
 		errstr(_("ldap_sasl_bind_s() failed: %s\n"), ldap_err2string(ret));
@@ -718,6 +727,7 @@ static int readconfigfile(const char *filename, struct configparams *config)
 	maildev[0] = 0;
 	config->user_signature = config->user_message = config->group_signature = config->group_message = NULL;
 	config->use_ldap_mail = 0;
+	config->use_ldap_tls = 0;
 	config->cc_before = -1;
 
 #ifdef USE_LDAP_MAIL_LOOKUP
@@ -810,6 +820,12 @@ static int readconfigfile(const char *filename, struct configparams *config)
 					config->use_ldap_mail = 1;
 				else
 					config->use_ldap_mail = 0;
+			}
+			else if (!strcmp(var, "LDAP_TLS")) {
+				if(strcasecmp(value, "true") == 0)
+					config->use_ldap_tls = 1;
+				else
+					config->use_ldap_tls = 0;
 			}
 			else if (!strcmp(var, "CC_BEFORE")) {
 				int num;
